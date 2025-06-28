@@ -300,85 +300,20 @@ impl OpCode {
         }
     }
 }
-pub unsafe fn luaV_execute(L: *mut lua_State) {
-    let mut ci = (*L).ci;
-    let mut cl = (*ci).func;
-    let mut base = (*ci).func.offset(1);
-    let mut pc = (*ci).u.l.savedpc;
 
-    loop {
-        let instruction = *pc;
-        pc = pc.offset(1);
+mod lmathlib;
 
-        let op = OpCode::from_u8(instruction.get_opcode());
-        let a = instruction.get_arg_a() as usize;
-        let b = instruction.get_arg_b() as usize;
-        let c = instruction.get_arg_c() as usize;
-        let bx = instruction.get_arg_bx();
-        let sbx = instruction.get_arg_sbx();
+use crate::lmathlib::luaopen_math;
+use crate::lapi::{luaL_openlibs, luaL_requiref, lua_pop, lua_State};
 
-        match op {
-            OpCode::MOVE => {
-                let rb = base.offset(b as isize);
-                let ra = base.offset(a as isize);
-                *ra = *rb;
-            }
-            OpCode::LOADK => {
-                let k = (*(*cl).cl.p).k.get_unchecked(bx as usize);
-                let ra = base.offset(a as isize);
-                *ra = *k;
-            }
-            OpCode::LOADBOOL => {
-                let ra = base.offset(a as isize);
-                *ra = TValue::from_bool(b != 0);
-                if c != 0 {
-                    pc = pc.offset(1);
-                }
-            }
-            OpCode::LOADNIL => {
-                for i in 0..=b {
-                    let ra = base.offset((a + i) as isize);
-                    *ra = TValue::nil();
-                }
-            }
-            OpCode::CALL => {
-                // Simplified: call function at R(A) with (B-1) args, expecting (C-1) results
-                let func = base.offset(a as isize);
-                luaD_call(L, func, b - 1, c - 1);
-                base = (*ci).func.offset(1);
-            }
-            OpCode::RETURN => {
-                let ra = base.offset(a as isize);
-                luaD_return(L, ra, b - 1);
-                return;
-            }
-            _ => {
-                panic!("Opcode {:?} not implemented yet", op);
-            }
-        }
-    }
+pub unsafe fn luaL_openlibs(L: *mut lua_State) {
+    // Open the standard Lua libraries
+
+    // ... open other libs ...
+
+    // Register math library
+    luaL_requiref(L, cstr!("math"), Some(luaopen_math), 1);
+    lua_pop(L, 1);
+
+    // ... open other libs ...
 }
-
-4. Helper Functions (Simplified)
-
-pub unsafe fn luaH_get(L: *mut lua_State, table: *const TValue, key: &str) -> TValue {
-    // Stub: Implement table lookup here
-    // For now return nil
-    TValue::nil()
-}
-
-pub unsafe fn luaH_set(L: *mut lua_State, table: *mut TValue, key: &str, val: *const TValue) {
-    // Stub: Implement table set here
-}
-
-pub unsafe fn luaD_call(L: *mut lua_State, func: *mut TValue, n_args: usize, n_results: usize) {
-    // Stub: Setup a new call frame and execute function
-    // For now do nothing
-}
-
-pub unsafe fn luaD_return(L: *mut lua_State, first_result: *mut TValue, n_results: usize) {
-    // Stub: Close current call frame and return results
-}
-    // For now do nothing
-pub unsafe fn luaV_execute(L: *mut lua_State) {
-    let mut ci = (*L).ci;         // Call info for current function

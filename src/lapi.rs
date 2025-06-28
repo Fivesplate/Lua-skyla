@@ -455,3 +455,16 @@ pub unsafe fn lua_pushthread(L: *mut lua_State) -> c_int {
     // Push thread on stack and return 1 if main thread.
     unimplemented!()
 }
+
+
+// lapi.rs
+
+// Declare external C function implemented in D
+extern "C" {
+    fn lua_gettop(L: *mut std::ffi::c_void) -> i32;
+}
+
+pub unsafe fn lua_gettop_rust(L: *mut std::ffi::c_void) -> i32 {
+    lua_gettop(L)
+}
+
