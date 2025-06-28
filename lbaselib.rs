@@ -1,58 +1,49 @@
-/*
-** $Id: lbaselib.c $
-** Basic library
-** See Copyright Notice in lua.h
-*/
+//! Basic library for Lua, translated from lbaselib.c
 
-#define lbaselib_c
-#define LUA_LIB
+use std::ffi::{CStr, CString};
+use std::os::raw::{c_char, c_int, c_void};
+use std::ptr;
 
-#include "lprefix.h"
+use crate::lua::*;
+use crate::lauxlib::*;
+use crate::lualib::*;
 
-
-#include <ctype.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-#include "lua.h"
-
-#include "lauxlib.h"
-#include "lualib.h"
-#include "llimits.h"
-
-
-static int luaB_print (lua_State *L) {
-  int n = lua_gettop(L);  /* number of arguments */
-  int i;
-  for (i = 1; i <= n; i++) {  /* for each argument */
-    size_t l;
-    const char *s = luaL_tolstring(L, i, &l);  /* convert it to string */
-    if (i > 1)  /* not the first element? */
-      lua_writestring("\t", 1);  /* add a tab before it */
-    lua_writestring(s, l);  /* print it */
-    lua_pop(L, 1);  /* pop result */
-  }
-  lua_writeline();
-  return 0;
+// Helper macro for error checking
+macro_rules! l_unlikely {
+    ($e:expr) => { $e }
+}
+macro_rules! l_likely {
+    ($e:expr) => { $e }
 }
 
+// print implementation
+unsafe extern "C" fn luaB_print(L: *mut lua_State) -> c_int {
+    let n = lua_gettop(L);
+    for i in 1..=n {
+        let mut l = 0;
+        let s = luaL_tolstring(L, i, &mut l);
+        if i > 1 {
+            lua_writestring(b"\t".as_ptr() as *const c_char, 1);
+        }
+        lua_writestring(s, l);
+        lua_pop(L, 1);
+    }
+    lua_writeline();
+    0
+}
 
-/*
-** Creates a warning with all given arguments.
-** Check first for errors; otherwise an error may interrupt
-** the composition of a warning, leaving it unfinished.
-*/
-static int luaB_warn (lua_State *L) {
-  int n = lua_gettop(L);  /* number of arguments */
-  int i;
-  luaL_checkstring(L, 1);  /* at least one argument */
-  for (i = 2; i <= n; i++)
-    luaL_checkstring(L, i);  /* make sure all arguments are strings */
-  for (i = 1; i < n; i++)  /* compose warning */
-    lua_warning(L, lua_tostring(L, i), 1);
-  lua_warning(L, lua_tostring(L, n), 0);  /* close warning */
-  return 0;
+// warn implementation
+unsafe extern "C" fn luaB_warn(L: *mut lua_State) -> c_int {
+    let n = lua_gettop(L);
+    luaL_checkstring(L, 1);
+    for i in 2..=n {
+        luaL_checkstring(L, i);
+    }
+    for i in 1..n {
+        lua_warning(L, lua_tostring(L, i), 1);
+    }
+    lua_warning(L, lua_tostring(L, n), 0);
+    0
 }
 
 
@@ -546,6 +537,15 @@ static const luaL_Reg base_funcs[] = {
 LUAMOD_API int luaopen_base (lua_State *L) {
   /* open lib into global table */
   lua_pushglobaltable(L);
+  luaL_setfuncs(L, base_funcs, 0);
+  /* set global _G */
+  lua_pushvalue(L, -1);
+  lua_setfield(L, -2, LUA_GNAME);
+  /* set global _VERSION */
+  lua_pushliteral(L, LUA_VERSION);
+  lua_setfield(L, -2, "_VERSION");
+  return 1;
+}
   luaL_setfuncs(L, base_funcs, 0);
   /* set global _G */
   lua_pushvalue(L, -1);
