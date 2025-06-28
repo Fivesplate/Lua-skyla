@@ -6,7 +6,6 @@
 pub mod lstate;
 pub mod lobject;
 pub mod ldo;
-pub mod lfunc;
 pub mod lstring;
 pub mod ltable;
 pub mod lmem;
@@ -14,6 +13,7 @@ pub mod lgc;
 pub mod lvm;
 pub mod ldebug;
 pub mod lapi;
+pub mod func;
 
 use std::ffi::{CStr, CString};
 use std::os::raw::{c_char, c_int, c_void};

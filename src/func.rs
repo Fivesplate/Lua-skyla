@@ -1,121 +1,121 @@
-/*
-** $Id: lfunc.c $
-** Auxiliary functions to manipulate prototypes and closures
-** See Copyright Notice in lua.h
-*/
+//! Rust translation of lfunc.c and lfunc.h
+//! Auxiliary functions to manipulate prototypes and closures
 
-#define lfunc_c
-#define LUA_CORE
+// --- lfunc.h translation ---
 
-#include "lprefix.h"
+// Constants and type aliases
+pub const MAXUPVAL: u8 = 255;
+pub const MAXMISS: usize = 10;
+pub const CLOSEKTOP: i32 = lua_sys::LUA_ERRERR + 1; // Assuming lua_sys::LUA_ERRERR is defined
 
-
-#include <stddef.h>
-
-#include "lua.h"
-
-#include "ldebug.h"
-#include "ldo.h"
-#include "lfunc.h"
-#include "lgc.h"
-#include "lmem.h"
-#include "lobject.h"
-#include "lstate.h"
-
-
-
-CClosure *luaF_newCclosure (lua_State *L, int nupvals) {
-  GCObject *o = luaC_newobj(L, LUA_VCCL, sizeCclosure(nupvals));
-  CClosure *c = gco2ccl(o);
-  c->nupvalues = cast_byte(nupvals);
-  return c;
+// Helper macros as functions
+#[inline]
+pub fn size_cclosure(n: usize) -> usize {
+    std::mem::size_of::<CClosure>() + std::mem::size_of::<TValue>() * n
+}
+#[inline]
+pub fn size_lclosure(n: usize) -> usize {
+    std::mem::size_of::<LClosure>() + std::mem::size_of::<*mut UpVal>() * n
+}
+#[inline]
+pub fn isintwups(L: &lua_State) -> bool {
+    !std::ptr::eq(L.twups, L)
+}
+#[inline]
+pub fn upisopen(up: &UpVal) -> bool {
+    !std::ptr::eq(up.v.p, &up.u.value as *const _ as *mut _)
+}
+#[inline]
+pub fn uplevel(up: &UpVal) -> StkId {
+    debug_assert!(upisopen(up));
+    up.v.p as StkId
 }
 
+// --- End lfunc.h translation ---
 
-LClosure *luaF_newLclosure (lua_State *L, int nupvals) {
-  GCObject *o = luaC_newobj(L, LUA_VLCL, sizeLclosure(nupvals));
-  LClosure *c = gco2lcl(o);
-  c->p = NULL;
-  c->nupvalues = cast_byte(nupvals);
-  while (nupvals--) c->upvals[nupvals] = NULL;
-  return c;
+// --- lfunc.c translation ---
+
+impl lua_State {
+    pub fn new_cclosure(&mut self, nupvals: usize) -> Box<CClosure> {
+        // Allocation logic, replace with actual GC logic as needed
+        let c = Box::new(CClosure::new(nupvals));
+        c
+    }
+
+    pub fn new_lclosure(&mut self, nupvals: usize) -> Box<LClosure> {
+        let mut c = Box::new(LClosure::new(nupvals));
+        c.p = std::ptr::null_mut();
+        c.nupvalues = nupvals as u8;
+        for upval in c.upvals.iter_mut() {
+            *upval = std::ptr::null_mut();
+        }
+        c
+    }
+
+    pub fn init_upvals(&mut self, cl: &mut LClosure) {
+        for i in 0..cl.nupvalues as usize {
+            let uv = Box::into_raw(Box::new(UpVal::closed_nil()));
+            cl.upvals[i] = uv;
+            // luaC_objbarrier(self, cl, uv); // GC barrier, implement as needed
+        }
+    }
+
+    pub fn find_upval(&mut self, level: StkId) -> *mut UpVal {
+        // ...implement logic similar to C code...
+        std::ptr::null_mut() // placeholder
+    }
+
+    pub fn new_tbcupval(&mut self, level: StkId) {
+        // ...implement logic...
+    }
+
+    pub fn close_upval(&mut self, level: StkId) {
+        // ...implement logic...
+    }
+
+    pub fn close(&mut self, level: StkId, status: TStatus, yy: i32) -> StkId {
+        // ...implement logic...
+        level // placeholder
+    }
+
+    pub fn unlink_upval(uv: &mut UpVal) {
+        // ...implement logic...
+    }
 }
 
+impl Proto {
+    pub fn new_proto(L: &mut lua_State) -> Box<Proto> {
+        Box::new(Proto::default())
+    }
 
-/*
-** fill a closure with new closed upvalues
-*/
-void luaF_initupvals (lua_State *L, LClosure *cl) {
-  int i;
-  for (i = 0; i < cl->nupvalues; i++) {
-    GCObject *o = luaC_newobj(L, LUA_VUPVAL, sizeof(UpVal));
-    UpVal *uv = gco2upv(o);
-    uv->v.p = &uv->u.value;  /* make it closed */
-    setnilvalue(uv->v.p);
-    cl->upvals[i] = uv;
-    luaC_objbarrier(L, cl, uv);
-  }
+    pub fn proto_size(&self) -> usize {
+        std::mem::size_of::<Proto>()
+            + self.sizep * std::mem::size_of::<*mut Proto>()
+            + self.sizek * std::mem::size_of::<TValue>()
+            + self.sizelocvars * std::mem::size_of::<LocVar>()
+            + self.sizeupvalues * std::mem::size_of::<Upvaldesc>()
+            // Add code/lineinfo/abslineinfo if not PF_FIXED
+    }
+
+    pub fn free_proto(L: &mut lua_State, f: Box<Proto>) {
+        // ...free logic...
+    }
+
+    pub fn get_local_name(&self, local_number: i32, pc: i32) -> Option<&str> {
+        let mut count = local_number;
+        for lv in &self.locvars {
+            if lv.startpc <= pc && pc < lv.endpc {
+                count -= 1;
+                if count == 0 {
+                    return Some(lv.varname.as_str());
+                }
+            }
+        }
+        None
+    }
 }
 
-
-/*
-** Create a new upvalue at the given level, and link it to the list of
-** open upvalues of 'L' after entry 'prev'.
-**/
-static UpVal *newupval (lua_State *L, StkId level, UpVal **prev) {
-  GCObject *o = luaC_newobj(L, LUA_VUPVAL, sizeof(UpVal));
-  UpVal *uv = gco2upv(o);
-  UpVal *next = *prev;
-  uv->v.p = s2v(level);  /* current value lives in the stack */
-  uv->u.open.next = next;  /* link it to list of open upvalues */
-  uv->u.open.previous = prev;
-  if (next)
-    next->u.open.previous = &uv->u.open.next;
-  *prev = uv;
-  if (!isintwups(L)) {  /* thread not in list of threads with upvalues? */
-    L->twups = G(L)->twups;  /* link it to the list */
-    G(L)->twups = L;
-  }
-  return uv;
-}
-
-
-/*
-** Find and reuse, or create if it does not exist, an upvalue
-** at the given level.
-*/
-UpVal *luaF_findupval (lua_State *L, StkId level) {
-  UpVal **pp = &L->openupval;
-  UpVal *p;
-  lua_assert(isintwups(L) || L->openupval == NULL);
-  while ((p = *pp) != NULL && uplevel(p) >= level) {  /* search for it */
-    lua_assert(!isdead(G(L), p));
-    if (uplevel(p) == level)  /* corresponding upvalue? */
-      return p;  /* return it */
-    pp = &p->u.open.next;
-  }
-  /* not found: create a new upvalue after 'pp' */
-  return newupval(L, level, pp);
-}
-
-
-/*
-** Call closing method for object 'obj' with error object 'err'. The
-** boolean 'yy' controls whether the call is yieldable.
-** (This function assumes EXTRA_STACK.)
-*/
-static void callclosemethod (lua_State *L, TValue *obj, TValue *err, int yy) {
-  StkId top = L->top.p;
-  StkId func = top;
-  const TValue *tm = luaT_gettmbyobj(L, obj, TM_CLOSE);
-  setobj2s(L, top++, tm);  /* will call metamethod... */
-  setobj2s(L, top++, obj);  /* with 'self' as the 1st argument */
-  if (err != NULL)  /* if there was an error... */
-    setobj2s(L, top++, err);  /* then error object will be 2nd argument */
-  L->top.p = top;  /* add function and arguments */
-  if (yy)
-    luaD_call(L, func, 0);
-  else
+// ...existing code...
     luaD_callnoyield(L, func, 0);
 }
 
