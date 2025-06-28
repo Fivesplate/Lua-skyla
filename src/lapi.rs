@@ -14,6 +14,7 @@ pub mod lvm;
 pub mod ldebug;
 pub mod lapi;
 pub mod func;
+pub mod lcorolib;
 
 use std::ffi::{CStr, CString};
 use std::os::raw::{c_char, c_int, c_void};
@@ -332,3 +333,125 @@ pub unsafe extern "C" fn luaL_loadfile(L: *mut lua_State, filename: *const c_cha
     unimplemented!()
 }
 
+use std::os::raw::{c_int, c_void};
+use std::ffi::CStr;
+use crate::lstate::lua_State;
+use crate::lvm;
+
+/// Coroutine-related constants from Lua
+pub const LUA_OK: c_int = 0;
+pub const LUA_YIELD: c_int = 1;
+pub const LUA_ERRRUN: c_int = 2;
+
+/// Create a new coroutine thread.
+/// Pushes the new thread onto the stack.
+pub unsafe fn lua_newthread(L: *mut lua_State) -> *mut lua_State {
+    // Your implementation here: create new lua_State as a coroutine thread,
+    // link to main state, setup stack, etc.
+    unimplemented!()
+}
+
+/// Push a copy of the value at index `idx` onto the stack.
+pub unsafe fn lua_pushvalue(L: *mut lua_State, idx: c_int) {
+    // Copy value from idx to top of stack.
+    unimplemented!()
+}
+
+/// Move `n` values from thread `from` to `to`.
+pub unsafe fn lua_xmove(from: *mut lua_State, to: *mut lua_State, n: c_int) {
+    // Move values from one lua_State stack to another.
+    unimplemented!()
+}
+
+/// Convert the value at given index to a coroutine thread.
+/// Returns null if value is not a thread.
+pub unsafe fn lua_tothread(L: *mut lua_State, idx: c_int) -> *mut lua_State {
+    // Return lua_State pointer if value at idx is thread, else null.
+    unimplemented!()
+}
+
+/// Resume a coroutine `co` with `nargs` arguments, using `L` as the caller state.
+/// Returns status code: LUA_OK, LUA_YIELD, or error.
+pub unsafe fn lua_resume(co: *mut lua_State, from: *mut lua_State, nargs: c_int) -> c_int {
+    // Run coroutine, resume execution.
+    // Update states accordingly.
+    unimplemented!()
+}
+
+/// Yield the current coroutine, returning `nresults` values.
+pub unsafe fn lua_yield(L: *mut lua_State, nresults: c_int) -> c_int {
+    // Suspend current coroutine, return to caller.
+    unimplemented!()
+}
+
+/// Return the status of a coroutine thread.
+pub unsafe fn lua_status(L: *mut lua_State) -> c_int {
+    // Return LUA_OK, LUA_YIELD, or error code.
+    unimplemented!()
+}
+
+/// Return the number of values on the stack.
+pub unsafe fn lua_gettop(L: *mut lua_State) -> c_int {
+    // Return stack top index.
+    unimplemented!()
+}
+
+/// Push boolean onto stack.
+pub unsafe fn lua_pushboolean(L: *mut lua_State, b: c_int) {
+    // Push boolean true/false
+    unimplemented!()
+}
+
+/// Push a string onto the stack.
+pub unsafe fn lua_pushstring(L: *mut lua_State, s: *const i8) {
+    // Push null-terminated C string.
+    unimplemented!()
+}
+
+/// Raise a Lua error (longjmp).
+pub unsafe fn lua_error(L: *mut lua_State) -> ! {
+    // Raise error, never returns.
+    unimplemented!()
+}
+
+/// Register a C function on top of the stack with a name in the table at the given index.
+pub unsafe fn lua_setfield(L: *mut lua_State, idx: c_int, k: *const i8) {
+    // Set field k in table at idx with value at top of stack.
+    unimplemented!()
+}
+
+/// Push a new empty table onto the stack.
+pub unsafe fn lua_newtable(L: *mut lua_State) {
+    // Push new table.
+    unimplemented!()
+}
+
+/// Push a C function onto the stack.
+pub unsafe fn lua_pushcfunction(L: *mut lua_State, f: Option<extern "C" fn(*mut lua_State) -> c_int>) {
+    // Push C function as a Lua callable.
+    unimplemented!()
+}
+
+/// Check argument at given stack index is of expected type.
+pub unsafe fn luaL_checktype(L: *mut lua_State, arg: c_int, t: c_int) {
+    // Panic or raise error if type mismatch.
+    unimplemented!()
+}
+
+/// Throw a Lua error with formatted message.
+pub unsafe fn luaL_error(L: *mut lua_State, msg: *const i8) -> ! {
+    // Raise error.
+    unimplemented!()
+}
+
+/// Returns the stack index for the upvalue.
+pub unsafe fn lua_upvalueindex(i: c_int) -> c_int {
+    // Typically LUA_REGISTRYINDEX - i
+    -1001000 - i
+}
+
+/// Push the current coroutine thread.
+pub unsafe fn lua_pushthread(L: *mut lua_State) -> c_int {
+    // Push thread on stack and return 1 if main thread.
+    unimplemented!()
+}
