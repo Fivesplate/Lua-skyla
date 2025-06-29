@@ -457,14 +457,7 @@ pub unsafe fn lua_pushthread(L: *mut lua_State) -> c_int {
 }
 
 
-// lapi.rs
-
-// Declare external C function implemented in D
+#[link(name = "dapi")]
 extern "C" {
-    fn lua_gettop(L: *mut std::ffi::c_void) -> i32;
+    pub fn lua_gettop(L: *mut std::ffi::c_void) -> i32;
 }
-
-pub unsafe fn lua_gettop_rust(L: *mut std::ffi::c_void) -> i32 {
-    lua_gettop(L)
-}
-
