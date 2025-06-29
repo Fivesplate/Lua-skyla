@@ -1,7 +1,4 @@
-# Lua
+# Lua Skyla
 
-This is the repository of Lua development code, as seen by the Lua team. It contains the full history of all commits but is mirrored irregularly. For complete information about Lua, visit [Lua.org](https://www.lua.org/).
-
-Please **do not** send pull requests. To report issues, post a message to the [Lua mailing list](https://www.lua.org/lua-l.html).
-
-Download official Lua releases from [Lua.org](https://www.lua.org/download.html).
+Lua Skyla is a rust-based fork of Lua that rewrites the core in Rust for better safety and performance, 
+while using the D language to handle advanced math and parsing tasks. It keeps Lua’s simplicity and compatibility but adds improved speed and reliability, making it ideal for game scripting and embedded use.
